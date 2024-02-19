@@ -25,10 +25,21 @@ public class Cliente extends JFrame {
         mensajesArea.setEditable(false);
 
         mensajeField = new JTextField();
-        mensajeField.addActionListener(e -> enviarMensaje());
+
+        JButton enviarButton = new JButton("Enviar");
+        enviarButton.addActionListener(e -> enviarMensaje());
+
+        JButton salirButton = new JButton("Salir");
+        salirButton.addActionListener(e -> desconectarCliente());
+
+        JPanel panelBotones = new JPanel();
+        panelBotones.setLayout(new FlowLayout());
+        panelBotones.add(enviarButton);
+        panelBotones.add(salirButton);
 
         add(new JScrollPane(mensajesArea), BorderLayout.CENTER);
-        add(mensajeField, BorderLayout.SOUTH);
+        add(mensajeField, BorderLayout.NORTH);
+        add(panelBotones, BorderLayout.SOUTH);
 
         setVisible(true);
 
@@ -66,9 +77,16 @@ public class Cliente extends JFrame {
 
     private void enviarMensaje() {
         String mensaje = mensajeField.getText();
-        escritor.println("#CLIENTE_ENVIO_MENSAJE#");
-        escritor.println(mensaje);
-        mensajeField.setText("");
+        if (!mensaje.isEmpty()) {
+            escritor.println("#CLIENTE_ENVIO_MENSAJE#");
+            escritor.println(mensaje);
+            mensajeField.setText("");
+        }
+    }
+
+    private void desconectarCliente() {
+        escritor.println("#CLIENTE_DESCONECTAR#");
+        System.exit(0);
     }
 
     private void appendMensaje(String mensaje) {
