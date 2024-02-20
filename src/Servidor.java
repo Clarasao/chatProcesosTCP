@@ -4,12 +4,15 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Servidor extends JFrame {
 
     private JTextArea mensajesArea;
     private List<PrintWriter> clientes = new ArrayList<>();
+    private Set<String> nombresUtilizados = new HashSet<>();
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -41,11 +44,22 @@ public class Servidor extends JFrame {
                 System.out.println("Nuevo cliente conectado.");
 
                 PrintWriter escritor = new PrintWriter(socketCliente.getOutputStream(), true);
-                clientes.add(escritor);
 
                 // Pedir al cliente que ingrese su nombre
                 escritor.println("Ingrese su nombre:");
                 String nombreCliente = new BufferedReader(new InputStreamReader(socketCliente.getInputStream())).readLine();
+
+                // Verificar si el nombre ya está en uso
+                if (nombreEstaEnUso(nombreCliente)) {
+                    // Enviar mensaje de error al cliente
+                    escritor.println("#NOMBRE_EN_USO#");
+                    socketCliente.close();
+                    continue;
+                }
+
+                // Marcar el nombre como utilizado
+                nombresUtilizados.add(nombreCliente);
+
                 broadcastMensaje("Bienvenido, " + nombreCliente + "!");
 
                 // Iniciar un nuevo hilo para manejar al cliente
@@ -54,6 +68,10 @@ public class Servidor extends JFrame {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean nombreEstaEnUso(String nombre) {
+        return nombresUtilizados.contains(nombre);
     }
 
     private void manejarCliente(Socket socket, PrintWriter escritor, String nombreCliente) {
@@ -73,6 +91,7 @@ public class Servidor extends JFrame {
         } finally {
             if (escritor != null) {
                 clientes.remove(escritor);
+                nombresUtilizados.remove(nombreCliente);
                 broadcastMensaje(nombreCliente + " se ha desconectado.");
             }
         }
