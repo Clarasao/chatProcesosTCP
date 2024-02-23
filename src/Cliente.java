@@ -11,6 +11,7 @@ public class Cliente extends JFrame {
     private JTextArea mensajesArea;
     private JTextField mensajeField;
     private PrintWriter escritor;
+    private String nombreCliente;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Cliente());
@@ -53,7 +54,7 @@ public class Cliente extends JFrame {
             escritor = new PrintWriter(socket.getOutputStream(), true);
 
             // Pedir al usuario que ingrese su nombre
-            String nombreCliente = JOptionPane.showInputDialog("Ingrese su nombre:");
+            nombreCliente = JOptionPane.showInputDialog("Ingrese su nombre:");
             escritor.println(nombreCliente);
 
             // Iniciar un nuevo hilo para recibir mensajes del servidor
@@ -68,7 +69,18 @@ public class Cliente extends JFrame {
         try {
             String mensaje;
             while ((mensaje = lectorServidor.readLine()) != null) {
-                appendMensaje(mensaje);
+                // Verificar si es un mensaje de lista de clientes
+                if (mensaje.equals("#LISTA_CLIENTES#")) {
+                    // Limpiar y actualizar la lista de clientes
+                    SwingUtilities.invokeLater(() -> mensajesArea.setText(""));
+                    while (!(mensaje = lectorServidor.readLine()).isEmpty()) {
+                        String finalMensaje = mensaje;
+                        SwingUtilities.invokeLater(() -> mensajesArea.append(finalMensaje + "\n"));
+                    }
+                } else {
+                    // Agregar el mensaje a la interfaz del cliente
+                    appendMensaje(mensaje);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
