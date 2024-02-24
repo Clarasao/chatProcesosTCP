@@ -53,11 +53,9 @@ public class Cliente extends JFrame {
             BufferedReader lectorServidor = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             escritor = new PrintWriter(socket.getOutputStream(), true);
 
-            // Pedir al usuario que ingrese su nombre
-            nombreCliente = JOptionPane.showInputDialog("Ingrese su nombre:");
+            nombreCliente = JOptionPane.showInputDialog("Por favor, ingrese su nombre:");
             escritor.println(nombreCliente);
 
-            // Iniciar un nuevo hilo para recibir mensajes del servidor
             new Thread(() -> recibirMensajesServidor(lectorServidor)).start();
 
         } catch (IOException e) {
@@ -69,16 +67,13 @@ public class Cliente extends JFrame {
         try {
             String mensaje;
             while ((mensaje = lectorServidor.readLine()) != null) {
-                // Verificar si es un mensaje de lista de clientes
                 if (mensaje.equals("#LISTA_CLIENTES#")) {
-                    // Limpiar y actualizar la lista de clientes
                     SwingUtilities.invokeLater(() -> mensajesArea.setText(""));
                     while (!(mensaje = lectorServidor.readLine()).isEmpty()) {
                         String finalMensaje = mensaje;
                         SwingUtilities.invokeLater(() -> mensajesArea.append(finalMensaje + "\n"));
                     }
                 } else {
-                    // Agregar el mensaje a la interfaz del cliente
                     appendMensaje(mensaje);
                 }
             }

@@ -10,8 +10,8 @@ import java.util.List;
 
 public class Servidor extends JFrame {
 
-    private JTextArea mensajesArea;
-    private List<PrintWriter> clientes = new ArrayList<>();
+    private JTextArea areaMensajes;
+    private List<PrintWriter> clientesConectados = new ArrayList<>();
     private List<String> nombresUtilizados = new ArrayList<>();
 
     public static void main(String[] args) {
@@ -22,22 +22,22 @@ public class Servidor extends JFrame {
     }
 
     private void iniciarServidor() {
-        mensajesArea = new JTextArea();
-        mensajesArea.setEditable(false);
-        mensajesArea.append("***BIENVENID@ SERVIDOR***\n");
+        areaMensajes = new JTextArea();
+        areaMensajes.setEditable(false);
+        areaMensajes.append("***BIENVENIDO AL SERVIDOR***\n");
 
-        add(new JScrollPane(mensajesArea), BorderLayout.CENTER);
+        add(new JScrollPane(areaMensajes), BorderLayout.CENTER);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 300);
         setVisible(true);
 
-        new Thread(this::iniciarServerSocket).start();
+        new Thread(this::iniciarConexionServidor).start();
     }
 
-    private void iniciarServerSocket() {
+    private void iniciarConexionServidor() {
         try (ServerSocket serverSocket = new ServerSocket(5555)) {
-            System.out.println("Servidor iniciado. Esperando conexiones...");
+            System.out.println("El servidor ha sido iniciado. Esperando conexiones...");
 
             while (true) {
                 Socket socketCliente = serverSocket.accept();
@@ -45,31 +45,23 @@ public class Servidor extends JFrame {
 
                 PrintWriter escritor = new PrintWriter(socketCliente.getOutputStream(), true);
 
-                // Pedir al cliente que ingrese su nombre
-                escritor.println("Ingrese su nombre:");
+                escritor.println("Por favor, ingrese su nombre:");
                 String nombreCliente = new BufferedReader(new InputStreamReader(socketCliente.getInputStream())).readLine();
 
-                // Verificar si el nombre ya está en uso
                 if (nombreEstaEnUso(nombreCliente)) {
-                    // Enviar mensaje de error al cliente
                     escritor.println("#NOMBRE_EN_USO#");
                     socketCliente.close();
                     continue;
                 }
 
-                // Marcar el nombre como utilizado
                 nombresUtilizados.add(nombreCliente);
-                // Enviar un mensaje especial indicando la conexión del nuevo cliente
-                broadcastMensaje(getFechaHoraActual() + " - " + nombreCliente + " se ha conectado.");
+                broadcastMensaje(obtenerFechaHoraActual() + " - " + nombreCliente + " se ha unido al chat.");
 
-                // Enviar la lista de clientes conectados a todos los clientes
                 enviarListaClientesConectados();
 
-                // Iniciar un nuevo hilo para manejar al cliente
                 new Thread(() -> manejarCliente(socketCliente, escritor, nombreCliente)).start();
 
-                // Agregar el escritor del cliente a la lista
-                clientes.add(escritor);
+                clientesConectados.add(escritor);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -77,7 +69,7 @@ public class Servidor extends JFrame {
     }
 
     private void enviarListaClientesConectados() {
-        for (PrintWriter cliente : clientes) {
+        for (PrintWriter cliente : clientesConectados) {
             cliente.println("#LISTA_CLIENTES#");
             for (String nombre : nombresUtilizados) {
                 cliente.println(nombre);
@@ -96,20 +88,18 @@ public class Servidor extends JFrame {
             String mensaje;
             while ((mensaje = lector.readLine()) != null) {
                 if (mensaje.equals("#CLIENTE_ENVIO_MENSAJE#")) {
-                    // Mensaje especial para indicar que un cliente envió un mensaje
                     mensaje = lector.readLine();
-                    broadcastMensaje(getFechaHoraActual() + " - " + nombreCliente + ": " + mensaje);
+                    broadcastMensaje(obtenerFechaHoraActual() + " - " + nombreCliente + ": " + mensaje);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             if (escritor != null) {
-                clientes.remove(escritor);
+                clientesConectados.remove(escritor);
                 nombresUtilizados.remove(nombreCliente);
-                // Enviar un mensaje especial indicando la desconexión del cliente
-                broadcastMensaje(getFechaHoraActual() + " - " + nombreCliente + " se ha desconectado.");
-                enviarListaClientesConectados(); // Actualizar la lista de clientes después de la desconexión
+                broadcastMensaje(obtenerFechaHoraActual() + " - " + nombreCliente + " se ha desconectado.");
+                enviarListaClientesConectados();
             }
         }
     }
@@ -117,11 +107,11 @@ public class Servidor extends JFrame {
     private void broadcastMensaje(String mensaje) {
         System.out.println(mensaje);
         SwingUtilities.invokeLater(() -> {
-            mensajesArea.append(mensaje + "\n");
-            mensajesArea.setCaretPosition(mensajesArea.getDocument().getLength());
+            areaMensajes.append(mensaje + "\n");
+            areaMensajes.setCaretPosition(areaMensajes.getDocument().getLength());
         });
 
-        for (PrintWriter cliente : clientes) {
+        for (PrintWriter cliente : clientesConectados) {
             try {
                 cliente.println(mensaje);
             } catch (Exception e) {
@@ -130,7 +120,7 @@ public class Servidor extends JFrame {
         }
     }
 
-    private String getFechaHoraActual() {
+    private String obtenerFechaHoraActual() {
         SimpleDateFormat formatoFechaHora = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
         return formatoFechaHora.format(new Date());
     }
